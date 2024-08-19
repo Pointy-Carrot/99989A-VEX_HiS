@@ -25,7 +25,7 @@ lemlib::Drivetrain drivetrain(&left_motor_group, // left motor group
                               14.5, // 14.5 inch track width
                               lemlib::Omniwheel::NEW_325, // using new 4" omnis
                               450, // drivetrain rpm is 360
-                              2 // horizontal drift is 2 (for now)
+                              8 // horizontal drift is 2 (for now)
 );
 
 // imu
@@ -80,21 +80,115 @@ lemlib::Chassis chassis(drivetrain, // drivetrain settings
 
 
 
+void red_left_qual_auto(){
+    chassis.setPose(-48, 30, 270);
+
+    chassis.moveToPoint(-35, 30, 500, {.forwards = false});
+    chassis.turnToHeading(300, 500);
+    chassis.waitUntilDone();
+    chassis.moveToPoint(chassis.getPose().x+6, chassis.getPose().y-8, 1000, {.forwards = false, .maxSpeed = 60});
+    chassis.waitUntilDone();
+    mogo_mech.set_value(true);
+    pros::delay(500);
+    intake.move(127);
+    chassis.turnToPoint(-24, 52, 500);
+    chassis.moveToPoint(-24, 40, 500, {.minSpeed = 60});
+    chassis.waitUntilDone();
+    chassis.turnToHeading(90, 500);
+    chassis.waitUntilDone();
+    intake.move(-127);
+    pros::delay(250);
+    intake.move(127);
+    pros::delay(250);
+    chassis.moveToPoint(-4, chassis.getPose().y-10, 1000, {.maxSpeed = 40});
+    chassis.waitUntilDone();
+    pros::delay(250);
+    chassis.moveToPoint(-24, chassis.getPose().y+8, 1000, {.forwards = false});
+    chassis.waitUntilDone();
+    pros::delay(250);
+    intake.move(-127);
+    pros::delay(250);
+    intake.move(127);
+    chassis.turnToPoint(-12, chassis.getPose().y+2, 500);
+    chassis.moveToPoint(-12, chassis.getPose().y+2, 2000, {.maxSpeed = 40});
+    chassis.waitUntilDone();
+    pros::delay(250);
+    chassis.moveToPoint(-24, chassis.getPose().y-2, 1000, {.forwards = false, .maxSpeed = 60});
+    chassis.waitUntilDone();
+    pros::delay(500);
+    chassis.turnToPoint(-16, 16, 500);
+    chassis.moveToPoint(-16, 16, 1000, {.maxSpeed = 60});
+    chassis.waitUntil(24);
+    mogo_mech.set_value(false);
+}
+
+void red_right_qual_auto(){
+
+}
+
+void blue_left_qual_auto(){
+
+}
+
+void blue_right_qual_auto(){
+
+}
+
+
+
+void red_left_elim_auto(){
+
+}
+
+void red_right_elim_auto(){
+
+}
+
+void blue_left_elim_auto(){
+
+}
+
+void blue_right_elim_auto(){
+
+}
+
+
+void prog_skills(){
+
+}
+
+
+
+rd::Selector selector({
+    {"Red Qual Left", &red_left_qual_auto},
+    {"Red Qual Right", &red_right_qual_auto},
+    {"Blue Qual Left", &blue_left_qual_auto},
+    {"Blue Qual Right", &blue_right_qual_auto},
+    {"Red Elim Left", &red_left_elim_auto},
+    {"Red Elim Right", &red_right_elim_auto},
+    {"Blue Elim Left", &blue_left_elim_auto},
+    {"Blue Elim Left", &blue_right_elim_auto},
+    {"Prog Skills", &prog_skills}
+});
+
+
+
+
+
+
+
+
+rd::Console console;
+
+
+
+
+
+
 // initialize function. Runs on program startup
 void initialize() {
-    pros::lcd::initialize(); // initialize brain screen
     chassis.calibrate(); // calibrate sensors
-    // print position to brain screen
-    pros::Task screen_task([&]() {
-        while (true) {
-            // print robot location to the brain screen
-            pros::lcd::print(0, "X: %f", chassis.getPose().x); // x
-            pros::lcd::print(1, "Y: %f", chassis.getPose().y); // y
-            pros::lcd::print(2, "Theta: %f", chassis.getPose().theta); // heading
-            // delay to save resources
-            pros::delay(20);
-        }
-    });
+    selector.focus();
 }
 
 
@@ -129,7 +223,9 @@ void competition_initialize() {}
  * will be stopped. Re-enabling the robot will restart the task, not re-start it
  * from where it left off.
  */
-void autonomous() {}
+void autonomous() {
+    red_left_qual_auto();
+}
 
 /**
  * Runs the operator control code. This function will be started in its own task
@@ -145,7 +241,7 @@ void autonomous() {}
  * task, not resume it from where it left off.
  */
 void opcontrol() {
-	
+	console.focus();
 	pros::Controller controller(pros::E_CONTROLLER_MASTER);
 	bool ring_mech_on = false;
     intake.set_brake_mode(pros::MotorBrake::coast);
