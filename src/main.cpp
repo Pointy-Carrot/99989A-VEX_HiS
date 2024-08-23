@@ -1,8 +1,9 @@
 #include "main.h"
 #include "lemlib/api.hpp"
 #include "robodash/api.h"
+#include <cstdio>
 
-
+ASSET(path1_txt);
 
 // config
 
@@ -12,6 +13,7 @@ pros::MotorGroup intake({6, -16}, pros::MotorGears::blue);
 
 pros::adi::DigitalOut mogo_mech('H');
 pros::adi::DigitalOut arm('G');
+pros::adi::DigitalOut intake_lift('A');
 
 
 // left motor group
@@ -100,7 +102,7 @@ void red_left_qual_auto(){
     pros::delay(250);
     intake.move(127);
     pros::delay(250);
-    chassis.moveToPoint(-4, chassis.getPose().y-10, 1000, {.maxSpeed = 40});
+    chassis.moveToPoint(-8, chassis.getPose().y-10, 1000, {.maxSpeed = 40});
     chassis.waitUntilDone();
     pros::delay(250);
     chassis.moveToPoint(-24, chassis.getPose().y+8, 1000, {.forwards = false});
@@ -123,7 +125,57 @@ void red_left_qual_auto(){
 }
 
 void red_right_qual_auto(){
-
+    chassis.setPose(-53.193, -58, 90);
+    
+    chassis.moveToPoint(-18, -58, 750);
+    chassis.swingToHeading(60, lemlib::DriveSide::LEFT, 500);
+    chassis.waitUntilDone();
+    arm.set_value(true);
+    pros::delay(250);
+    chassis.moveToPoint(-50, -64, 2000, {.forwards = false});
+    chassis.turnToHeading(125, 500, {.minSpeed = 90});
+    chassis.waitUntilDone();
+    arm.set_value(false);
+    pros::delay(250);
+    chassis.turnToHeading(270, 750, {.direction = lemlib::AngularDirection::CCW_COUNTERCLOCKWISE});
+    chassis.moveToPose(-20, -62, 270, 1000, {.forwards = false});
+    chassis.waitUntilDone();
+    mogo_mech.set_value(true);
+    pros::delay(250);
+    intake.move(127);
+    chassis.turnToPoint(chassis.getPose().x-6, -56, 750);
+    chassis.moveToPoint(chassis.getPose().x-6, -56, 1000);
+    chassis.waitUntilDone();
+    pros::delay(500);
+    intake.move(-127);
+    pros::delay(50);
+    intake.move(127);
+    pros::delay(500);
+    chassis.turnToHeading(0, 500, {.direction = lemlib::AngularDirection::CW_CLOCKWISE});
+    chassis.waitUntilDone();
+    mogo_mech.set_value(false);
+    intake.move(-127);
+    chassis.turnToHeading(180, 750, {.direction = lemlib::AngularDirection::CCW_COUNTERCLOCKWISE});
+    chassis.moveToPoint(chassis.getPose().x-4, -28, 1000, {.forwards = false, .maxSpeed = 60});
+    chassis.waitUntilDone();
+    mogo_mech.set_value(true);
+    intake.move(127);
+    pros::delay(250);
+    chassis.turnToHeading(270, 750);
+    intake.move(80);
+    intake_lift.set_value(true);
+    chassis.waitUntilDone();
+    intake.move(127);
+    chassis.moveToPose(-48, -10, 0, 2000, {.minSpeed = 80});
+    chassis.waitUntilDone();
+    intake_lift.set_value(false);
+    pros::delay(250);
+    chassis.turnToHeading(90, 750);
+    chassis.waitUntilDone();
+    chassis.moveToPoint(chassis.getPose().x+20, chassis.getPose().y, 750, {.maxSpeed = 80});
+    chassis.waitUntilDone();
+    pros::delay(750);
+    mogo_mech.set_value(false);
 }
 
 void blue_left_qual_auto(){
@@ -224,7 +276,7 @@ void competition_initialize() {}
  * from where it left off.
  */
 void autonomous() {
-    red_left_qual_auto();
+    red_right_qual_auto();
 }
 
 /**
