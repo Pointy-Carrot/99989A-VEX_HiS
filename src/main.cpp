@@ -2,6 +2,7 @@
 #include "lemlib/api.hpp"
 #include "robodash/api.h"
 #include <cstdio>
+#include <string>
 
 ASSET(path1_txt);
 
@@ -9,7 +10,7 @@ ASSET(path1_txt);
 
 // pros::Motor intakeR(6, pros::v5::MotorGears::blue);
 // pros::Motor intakeL(-16, pros::v5::MotorGears::blue);
-pros::MotorGroup intake({6, -16}, pros::MotorGears::blue);
+pros::MotorGroup intake({-6, 16}, pros::MotorGears::blue);
 
 pros::adi::DigitalOut mogo_mech('H');
 pros::adi::DigitalOut arm('G');
@@ -32,6 +33,8 @@ lemlib::Drivetrain drivetrain(&left_motor_group, // left motor group
 
 // imu
 pros::Imu imu(7);
+// optical
+pros::Optical sorter(5);
 // horizontal tracking wheel encoder
 // pros::Rotation horizontal_encoder(20);
 // vertical tracking wheel encoder
@@ -80,15 +83,55 @@ lemlib::Chassis chassis(drivetrain, // drivetrain settings
                         sensors // odometry sensors
 );
 
+bool ejecting = false;
+bool red = true;
+
+void eject_ring(){
+    ejecting = true;
+    intake.move(127);
+    pros::delay(60);
+    intake.move(-127);
+    pros::delay(250);
+    intake.move(0);
+    pros::delay(100);
+    intake.move(127);
+    pros::delay(400);
+    ejecting = false;
+}
+
+enum Color {
+    RED,
+    BLUE
+};
+
+void sort_red(){
+    sorter.set_led_pwm(50);
+    if(sorter.get_hue() < 20){
+        if(!ejecting){
+            eject_ring();
+        }
+    }
+}
+
+void sort_blue(){
+    sorter.set_led_pwm(100);
+    if(sorter.get_hue() > 150 && sorter.get_hue() < 270){
+        eject_ring();
+    }
+}
+
+
+
 
 
 void red_5_ring(){
+    red = true;
     chassis.setPose(-48, 30, 270);
 
-    chassis.moveToPoint(-32, 30, 500, {.forwards = false});
+    chassis.moveToPoint(-36, 30, 500, {.forwards = false});
     chassis.turnToHeading(300, 500);
     chassis.waitUntilDone();
-    chassis.moveToPoint(chassis.getPose().x+7, chassis.getPose().y-9, 1000, {.forwards = false, .maxSpeed = 60});
+    chassis.moveToPoint(-24, 24, 1000, {.forwards = false, .maxSpeed = 60});
     chassis.waitUntilDone();
     mogo_mech.set_value(true);
     pros::delay(250);
@@ -112,69 +155,101 @@ void red_5_ring(){
     chassis.waitUntilDone();
     pros::delay(500);
     chassis.turnToHeading(270, 750);
-    chassis.moveToPose(-53, 11, 180, 2000, {.maxSpeed = 80});
+    chassis.moveToPose(-53, 8, 180, 2000, {.maxSpeed = 80});
     intake_lift.set_value(true);
     chassis.waitUntilDone();
     intake_lift.set_value(false);
     pros::delay(250);
-    chassis.moveToPoint(-53, 20, 1000, {.forwards = false});
+    chassis.moveToPoint(-50, 20, 1000, {.forwards = false, .maxSpeed = 60});
     chassis.turnToPoint(-20, 16, 500);
     chassis.moveToPoint(-28, 16, 1000, {.maxSpeed = 60});
-    chassis.waitUntil(24);
-    mogo_mech.set_value(false);
 }
 
 void red_solo_AWP(){
-    chassis.setPose(-58, -18, 90);
-
-    chassis.turnToHeading(55, 500, {.maxSpeed = 75});
+    red = true;
+    chassis.setPose(-48, -18, 270);
+    chassis.moveToPoint(-22, -26, 2000, {.forwards = false, .minSpeed = 60});
     chassis.waitUntilDone();
-    arm.set_value(true);
-    pros::delay(250);
-    chassis.turnToHeading(180, 1000, {.maxSpeed = 75});
-    chassis.waitUntilDone();
-    arm.set_value(false);
-    pros::delay(250);
-    chassis.moveToPoint(-56, 4, 2000, {.forwards = false, .maxSpeed = 60});
-    chassis.waitUntilDone();
-    chassis.moveToPoint(-56, 0, 1000, {.maxSpeed = 60});
-    chassis.turnToHeading(90, 1000, {.maxSpeed = 75});
-    chassis.waitUntilDone();
-    chassis.moveToPoint(-61, 0, 1000, {.forwards = false, .maxSpeed = 60});
-    chassis.waitUntilDone();
-    intake.move(-70);
-    pros::delay(500);
-    chassis.moveToPoint(-56, 0, 1000);
-    chassis.turnToHeading(0, 500);
-    chassis.moveToPose(-22, -26, 300, 1500, {.forwards = false});
-    chassis.waitUntil(48);
     mogo_mech.set_value(true);
-    intake.move(80);
     pros::delay(250);
-    chassis.turnToHeading(255, 500);
-    chassis.moveToPoint(-52, -32, 1000);
     intake.move(127);
+    pros::delay(500);
+    chassis.moveToPose(-44, -4, 0, 2000, {.minSpeed = 70});
+    intake_lift.set_value(true);
     chassis.waitUntilDone();
-    pros::delay(200);
-    chassis.turnToPoint(-24, -48, 1000);
-    chassis.moveToPoint(-24, -48, 2000);
+    intake_lift.set_value(false);
+    pros::delay(1250);
+    mogo_mech.set_value(false);
+    chassis.turnToHeading(0, 500);
+    intake.move(0);
+    chassis.moveToPoint(-48, 8, 1000);
+    chassis.turnToPoint(-20, 24, 500, {.forwards = false});
+    chassis.moveToPoint(-20, 24, 1500, {.forwards = false, .maxSpeed = 60});
     chassis.waitUntilDone();
+    mogo_mech.set_value(true);
     pros::delay(250);
     chassis.turnToHeading(0, 750);
-    chassis.waitUntilDone();
-    chassis.moveToPoint(-14, -2, 2000);
-    chassis.waitUntilDone();
-    mogo_mech.set_value(false);
-    intake.move(0);
+    intake.move(127);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    // chassis.turnToHeading(55, 500, {.maxSpeed = 75});
+    // chassis.waitUntilDone();
+    // arm.set_value(true);
+    // pros::delay(250);
+    // chassis.turnToHeading(180, 1000, {.maxSpeed = 75});
+    // chassis.waitUntilDone();
+    // arm.set_value(false);
+    // pros::delay(250);
+    // chassis.moveToPoint(-56, 4, 2000, {.forwards = false, .maxSpeed = 60});
+    // chassis.waitUntilDone();
+    // chassis.moveToPoint(-56, 0, 1000, {.maxSpeed = 60});
+    // chassis.turnToHeading(90, 1000, {.maxSpeed = 75});
+    // chassis.waitUntilDone();
+    // chassis.moveToPoint(-61, 0, 1000, {.forwards = false, .maxSpeed = 60});
+    // chassis.waitUntilDone();
+    // intake.move(127);
+    // pros::delay(500);
+    // chassis.moveToPoint(-56, 0, 1000);
+    // chassis.turnToHeading(0, 500);
+    // chassis.moveToPose(-22, -26, 300, 1500, {.forwards = false});
+    // chassis.waitUntil(48);
+    // mogo_mech.set_value(true);
+    // intake.move(80);
+    // pros::delay(250);
+    // chassis.turnToHeading(255, 500);
+    // chassis.moveToPoint(-52, -32, 1000);
+    // intake.move(127);
+    // chassis.waitUntilDone();
+    // pros::delay(200);
+    // chassis.turnToPoint(-24, -48, 1000);
+    // chassis.moveToPoint(-24, -48, 2000);
+    // chassis.waitUntilDone();
+    // pros::delay(250);
+    // chassis.turnToHeading(0, 750);
+    // chassis.waitUntilDone();
+    // chassis.moveToPoint(-14, -2, 2000);
 }
 
 void blue_5_ring(){
+    red = false;
     chassis.setPose(48, 30, 90);
 
-    chassis.moveToPoint(35, 30, 500, {.forwards = false});
+    chassis.moveToPoint(36, 30, 500, {.forwards = false});
     chassis.turnToHeading(60, 500);
     chassis.waitUntilDone();
-    chassis.moveToPoint(chassis.getPose().x-7, chassis.getPose().y-9, 1000, {.forwards = false, .maxSpeed = 60});
+    chassis.moveToPoint(24, 24, 1000, {.forwards = false, .maxSpeed = 60});
     chassis.waitUntilDone();
     mogo_mech.set_value(true);
     pros::delay(250);
@@ -206,11 +281,10 @@ void blue_5_ring(){
     chassis.moveToPoint(42, 20, 1000, {.forwards = false});
     chassis.turnToPoint(8, 6, 500);
     chassis.moveToPoint(8, 6, 2000, {.maxSpeed = 60});
-    chassis.waitUntil(24);
-    mogo_mech.set_value(false);
 }
 
 void blue_solo_AWP(){
+    red = false;
     chassis.setPose(57, -18, 270);
 
     chassis.turnToHeading(350, 500, {.maxSpeed = 75});
@@ -228,7 +302,7 @@ void blue_solo_AWP(){
     chassis.waitUntilDone();
     chassis.moveToPoint(61, -2, 1000, {.forwards = false, .maxSpeed = 30});
     chassis.waitUntilDone();
-    intake.move(-70);
+    intake.move(127);
     pros::delay(500);
     chassis.moveToPoint(56, 0, 1000);
     chassis.turnToHeading(0, 500);
@@ -249,12 +323,10 @@ void blue_solo_AWP(){
     chassis.turnToHeading(0, 750);
     chassis.waitUntilDone();
     chassis.moveToPoint(10, -18, 2000);
-    chassis.waitUntilDone();
-    mogo_mech.set_value(false);
-    intake.move(0);
 }
 
 void red_goal_rush(){
+    red = true;
     chassis.setPose(-56, -58, 90);
     
     chassis.moveToPoint(-18, -58, 750);
@@ -295,11 +367,10 @@ void red_goal_rush(){
     intake_lift.set_value(false);
     pros::delay(350);
     chassis.moveToPoint(chassis.getPose().x+12, chassis.getPose().y-12, 1000, {.forwards = false});
-    pros::delay(1250);
-    mogo_mech.set_value(false);
 }
 
 void blue_goal_rush(){
+    red = false;
     chassis.setPose(54, -30, 270);
     
     chassis.moveToPoint(20, -38, 1000); 
@@ -343,13 +414,11 @@ void blue_goal_rush(){
     chassis.waitUntilDone();
     intake_lift.set_value(false);
     chassis.moveToPoint(46, chassis.getPose().y-12, 1000, {.forwards = false});
-    pros::delay(1750);
-    mogo_mech.set_value(false);
 }
 
 
 void prog_skills(){
-
+    red = true;
 }
 
 
@@ -375,13 +444,30 @@ rd::Console console;
 
 
 
-
+void color_sort(Color color){
+    if(color == RED){
+        sort_red();
+    } else if(color == BLUE){
+        sort_blue();
+    }
+}
 
 
 // initialize function. Runs on program startup
 void initialize() {
     chassis.calibrate(); // calibrate sensors
     selector.focus();
+    pros::Task sort_task([]{
+        while(true){
+            if(red){
+                color_sort(BLUE);
+                pros::delay(20);
+            } else if(!red){
+                color_sort(RED);
+                pros::delay(20);
+            }
+        }
+    });
 }
 
 
@@ -420,6 +506,7 @@ void autonomous() {
     selector.run_auton();
 }
 
+
 /**
  * Runs the operator control code. This function will be started in its own task
  * with the default priority and stack size whenever the robot is enabled via
@@ -438,6 +525,7 @@ void opcontrol() {
 	pros::Controller controller(pros::E_CONTROLLER_MASTER);
 	bool ring_mech_on = false;
     intake.set_brake_mode(pros::MotorBrake::coast);
+    
 
 	while (true) {
 		// get left y and right x positions
@@ -462,7 +550,7 @@ void opcontrol() {
 		}
 		
 		// mogo mech controls
-		if(controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A)){
+		if(controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_Y)){
 			mogo_mech.set_value(true);
 		} else if(controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_B)){
 			mogo_mech.set_value(false); 
@@ -473,6 +561,13 @@ void opcontrol() {
             arm.set_value(true);
         } else if(controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_DOWN)){
             arm.set_value(false);
+        }
+        
+        // manual color sort override
+        if(controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_UP)){
+            red = true;
+        } else if(controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_LEFT)){
+            red = false;
         }
 
         // delay to save resources
