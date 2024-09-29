@@ -26,14 +26,14 @@ pros::MotorGroup right_motor_group({1, 6, 9}, pros::MotorGears::blue);
 // drivetrain settings
 lemlib::Drivetrain drivetrain(&left_motor_group, // left motor group
                               &right_motor_group, // right motor group
-                              14.5, // 14.5 inch track width
-                              lemlib::Omniwheel::NEW_325, // using new 4" omnis
-                              450, // drivetrain rpm is 360
+                              13, // 14.5 inch track width
+                              lemlib::Omniwheel::NEW_325, // using new 3.25" omnis
+                              450, // drivetrain rpm is 450
                               8 // horizontal drift is 2 (for now)
 );
 
 // imu
-pros::Imu imu(20);
+pros::Imu imu(13);
 // optical
 pros::Optical sorter(14);
 // horizontal tracking wheel encoder
@@ -121,35 +121,30 @@ void sort_blue(){
 }
 
 void arm_move_load(){
-    if(arm_rot.get_angle()> 332){
-        while(arm_rot.get_angle()>332){
-            arm_moving = true;
-            arm_motor.move(-127);
+    arm_moving = true;
+    while(arm_moving){
+        arm_motor.move(60);
+        while(arm_rot.get_position()>16000){
             pros::delay(20);
         }
-    } else if(arm_rot.get_angle()<332){
-        while(arm_rot.get_angle()<332){
-            arm_motor.move(127);
-            pros::delay(20);
+        if(arm_rot.get_position()<16000){
+            arm_moving = false;
         }
     }
     arm_motor.set_brake_mode(pros::MotorBrake::hold);
     arm_motor.move(0);
-    arm_moving = false;
+    
 }
 
 void arm_move_down(){
-    if(arm_rot.get_angle()>290){
-        while(arm_rot.get_angle()>290){
-            arm_moving = true;
-            arm_motor.move(-127);
-            pros::delay(20);
-        }
+    if(!(arm_rot.get_position()<350)){
+        arm_motor.move(127);
+        pros::delay(250);
         arm_motor.set_brake_mode(pros::MotorBrake::hold);
         arm_motor.move(0);
-        arm_moving = false;
     }
 }
+
 
 
 
@@ -623,6 +618,7 @@ bool y_pressed = false;
 bool b_pressed = false;
 bool right_pressed = false;
 bool down_pressed = false;
+int arm_velocity = 127;
 /**
  * Runs the operator control code. This function will be started in its own task
  * with the default priority and stack size whenever the robot is enabled via
@@ -642,7 +638,6 @@ void opcontrol() {
 	bool ring_mech_on = false;
     intake.set_brake_mode(pros::MotorBrake::coast);
     arm_motor.set_brake_mode(pros::MotorBrake::hold);
-    
 
 	while (true) {
 		// get left y and right x positions
@@ -689,21 +684,23 @@ void opcontrol() {
         }
 
         if(controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_RIGHT)){
+            // arm_velocity = 127;
             pros::Task task{[] {
                 arm_move_load();
             }};
         }
 
         if(controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_DOWN)){
+            // arm_velocity = 60;
             pros::Task task{[] {
                 arm_move_down();
             }};
         }
 
         if(controller.get_digital(pros::E_CONTROLLER_DIGITAL_R1)){
-            arm_motor.move(127);
+            arm_motor.move(arm_velocity);
         } else if(controller.get_digital(pros::E_CONTROLLER_DIGITAL_R2)){
-            arm_motor.move(-127);
+            arm_motor.move(-arm_velocity);
         } else if(!arm_moving){
             arm_motor.move(0);
         }
