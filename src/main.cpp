@@ -10,6 +10,8 @@ ASSET(path1_txt);
 
 pros::Rotation vert_tracker(16);
 pros::Rotation arm_rot(10);
+pros::Optical sorter(14);
+pros::Rotation hooks_rot(-12);
 
 pros::adi::DigitalOut mogo_mech('A');
 pros::adi::DigitalOut arm('E');
@@ -34,8 +36,7 @@ lemlib::Drivetrain drivetrain(&left_motor_group, // left motor group
 
 // imu
 pros::Imu imu(13);
-// optical
-pros::Optical sorter(14);
+
 // horizontal tracking wheel encoder
 // pros::Rotation horizontal_encoder(20);
 // vertical tracking wheel encoder
@@ -84,19 +85,22 @@ lemlib::Chassis chassis(drivetrain, // drivetrain settings
                         sensors // odometry sensors
 );
 
+
+
+
+
+
+
+// COLOR SORTER CODE
+
 bool ejecting = false;
 bool red = true;
 bool arm_moving = false;
 
 void eject_ring(){
-    ejecting = true;
     intake.move(-127);
-    pros::delay(250);
-    intake.move(0);
     pros::delay(100);
     intake.move(127);
-    pros::delay(400);
-    ejecting = false;
 }
 
 enum Color {
@@ -104,14 +108,11 @@ enum Color {
     BLUE
 };
 
-void sort_red(){
-    sorter.set_led_pwm(100);
-    if(sorter.get_hue() < 20){
-        if(!ejecting){
-            eject_ring();
-        }
-    }
+double get_hook_position(){
+    return (hooks_rot.get_position() % 54000);
 }
+
+
 
 void sort_blue(){
     sorter.set_led_pwm(100);
@@ -119,6 +120,10 @@ void sort_blue(){
         eject_ring();
     }
 }
+
+
+
+// ARM MACROS
 
 void arm_move_load(){
     arm_moving = true;
@@ -133,16 +138,6 @@ void arm_move_load(){
     }
     arm_motor.set_brake_mode(pros::MotorBrake::hold);
     arm_motor.move(0);
-    
-}
-
-void arm_move_down(){
-    if(!(arm_rot.get_position()<350)){
-        arm_motor.move(127);
-        pros::delay(250);
-        arm_motor.set_brake_mode(pros::MotorBrake::hold);
-        arm_motor.move(0);
-    }
 }
 
 
@@ -561,6 +556,21 @@ rd::Selector selector({
 
 rd::Console console;
 
+void sort_red(){
+    // sorter.set_led_pwm(50);
+    // if(sorter.get_proximity() < 150 && sorter.get_proximity() > 10){
+    //     pros::delay(50);
+    //     if(sorter.get_hue() > 350 || sorter.get_hue() < 10){
+    //         intake.set_brake_mode(pros::MotorBrake::hold);
+    //         pros::delay(100);
+    //         while(!(get_hook_position() < 2000)){
+    //             pros::delay(10);
+    //         }
+    //         eject_ring();
+    //         intake.set_brake_mode(pros::MotorBrake::coast);
+    //     }
+    // }
+}
 
 
 void color_sort(Color color){
@@ -576,8 +586,19 @@ void color_sort(Color color){
 void initialize() {
     chassis.calibrate(); // calibrate sensors
     selector.focus();
+    hooks_rot.set_position(0);
+    pros::Task sort_task([]{
+        while(true){
+            if(red){
+                color_sort(RED);
+                pros::delay(20);
+            } else if(!red){
+                color_sort(BLUE);
+                pros::delay(20);
+            }
+        }
+    });
 }
-
 
 
 
@@ -636,8 +657,8 @@ void opcontrol() {
 	console.focus();
 	pros::Controller controller(pros::E_CONTROLLER_MASTER);
 	bool ring_mech_on = false;
-    intake.set_brake_mode(pros::MotorBrake::coast);
     arm_motor.set_brake_mode(pros::MotorBrake::hold);
+    red = true;
 
 	while (true) {
 		// get left y and right x positions
@@ -690,13 +711,6 @@ void opcontrol() {
             }};
         }
 
-        if(controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_DOWN)){
-            // arm_velocity = 60;
-            pros::Task task{[] {
-                arm_move_down();
-            }};
-        }
-
         if(controller.get_digital(pros::E_CONTROLLER_DIGITAL_R1)){
             arm_motor.move(arm_velocity);
         } else if(controller.get_digital(pros::E_CONTROLLER_DIGITAL_R2)){
@@ -707,7 +721,13 @@ void opcontrol() {
         
         // manual color sort override
         if(controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_UP)){
-            red = true;
+            // red = true;
+            intake.move(127);
+            pros::delay(100);
+            while(!(get_hook_position() < 5000)){
+                pros::delay(10);
+            }
+            intake.move(0);
         } else if(controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_LEFT)){
             red = false;
         }
