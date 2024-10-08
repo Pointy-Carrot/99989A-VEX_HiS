@@ -114,12 +114,7 @@ double get_hook_position(){
 
 
 
-void sort_blue(){
-    sorter.set_led_pwm(100);
-    if(sorter.get_hue() > 150 && sorter.get_hue() < 270){
-        eject_ring();
-    }
-}
+
 
 
 
@@ -557,19 +552,39 @@ rd::Selector selector({
 rd::Console console;
 
 void sort_red(){
-    // sorter.set_led_pwm(50);
-    // if(sorter.get_proximity() < 150 && sorter.get_proximity() > 10){
-    //     pros::delay(50);
-    //     if(sorter.get_hue() > 350 || sorter.get_hue() < 10){
-    //         intake.set_brake_mode(pros::MotorBrake::hold);
-    //         pros::delay(100);
-    //         while(!(get_hook_position() < 2000)){
-    //             pros::delay(10);
-    //         }
-    //         eject_ring();
-    //         intake.set_brake_mode(pros::MotorBrake::coast);
-    //     }
-    // }
+    sorter.set_led_pwm(35);
+    if(sorter.get_proximity() > 150){
+        pros::delay(50);
+        if((sorter.get_hue() > 350 || sorter.get_hue() < 10) && !ejecting){
+            ejecting = true;
+            intake.set_brake_mode(pros::MotorBrake::hold);
+            pros::delay(100);
+            while(!(get_hook_position() > 9000)){
+                pros::delay(10);
+            }
+            eject_ring();
+            intake.set_brake_mode(pros::MotorBrake::coast);
+            ejecting = false;
+        }
+    }
+}
+
+void sort_blue(){
+    sorter.set_led_pwm(35);
+    if(sorter.get_proximity() > 150){
+        pros::delay(50);
+        if((sorter.get_hue() > 180 && sorter.get_hue() < 300) && !ejecting){
+            ejecting = true;
+            intake.set_brake_mode(pros::MotorBrake::hold);
+            pros::delay(100);
+            while(!(get_hook_position() > 9000)){
+                pros::delay(10);
+            }
+            eject_ring();
+            intake.set_brake_mode(pros::MotorBrake::coast);
+            ejecting = false;
+        }
+    }
 }
 
 
@@ -586,7 +601,6 @@ void color_sort(Color color){
 void initialize() {
     chassis.calibrate(); // calibrate sensors
     selector.focus();
-    hooks_rot.set_position(0);
     pros::Task sort_task([]{
         while(true){
             if(red){
@@ -664,7 +678,7 @@ void opcontrol() {
 		// get left y and right x positions
         int leftY = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
         int rightX = controller.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
-
+        console.println(std::to_string(sorter.get_proximity()));
         // move the robot
         chassis.arcade(leftY, rightX);
 
@@ -734,6 +748,6 @@ void opcontrol() {
 
         // delay to save resources
         pros::delay(25);
-
+        console.clear();
 	}
 }
